@@ -1,12 +1,148 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles } from "lucide-react";
+import { mockItineraries, ItineraryEvent } from "@/data/mockEvents";
+import MapView from "@/components/MapView";
+import DateSelector from "@/components/DateSelector";
+import EventPill from "@/components/EventPill";
+import TravelIndicator from "@/components/TravelIndicator";
+import EventDetail from "@/components/EventDetail";
+import NavigationView from "@/components/NavigationView";
+import AIChatPanel from "@/components/AIChatPanel";
 
 const Index = () => {
+  const [selectedDate, setSelectedDate] = useState(mockItineraries[0].date);
+  const [selectedEvent, setSelectedEvent] = useState<ItineraryEvent | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
+
+  const currentDay = useMemo(
+    () => mockItineraries.find((d) => d.date === selectedDate) || mockItineraries[0],
+    [selectedDate]
+  );
+
+  const selectedEventIndex = selectedEvent
+    ? currentDay.events.findIndex((e) => e.id === selectedEvent.id)
+    : -1;
+
+  const travelToSelected =
+    selectedEventIndex > 0
+      ? currentDay.travel[selectedEventIndex - 1]
+      : undefined;
+
+  const navEvent = useMemo(() => selectedEvent, [isNavigating]);
+
+  const handleNavigate = () => {
+    setIsNavigating(true);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="relative h-screen w-screen overflow-hidden bg-background">
+      {/* Map layer */}
+      <div className="absolute inset-0">
+        <MapView
+          events={currentDay.events}
+          onMarkerClick={(event) => setSelectedEvent(event)}
+        />
       </div>
+
+      {/* AI Chat FAB */}
+      <motion.button
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setIsChatOpen(true)}
+        className="absolute top-12 right-4 z-20 w-12 h-12 rounded-2xl nav-gradient flex items-center justify-center shadow-lg"
+      >
+        <Sparkles className="w-5 h-5 text-accent-foreground" />
+      </motion.button>
+
+      {/* Bottom Sheet */}
+      <motion.div
+        className="absolute bottom-0 left-0 right-0 z-10 rounded-t-3xl bg-card shadow-2xl"
+        initial={{ y: "60%" }}
+        animate={{ y: sheetExpanded ? "5%" : "55%" }}
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={0.1}
+        onDragEnd={(_, info) => {
+          if (info.offset.y < -50) setSheetExpanded(true);
+          if (info.offset.y > 50) setSheetExpanded(false);
+        }}
+        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        style={{ height: "95%" }}
+      >
+        {/* Handle */}
+        <div className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing"
+          onClick={() => setSheetExpanded(!sheetExpanded)}
+        >
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+        </div>
+
+        {/* Date selector */}
+        <div className="px-4">
+          <DateSelector selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+        </div>
+
+        {/* Title */}
+        <div className="px-5 pt-2 pb-1">
+          <h2 className="text-lg font-bold text-foreground">
+            {currentDay.label === "Today" ? "Today's" : currentDay.label + "'s"} Itinerary
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {currentDay.events.length} events · {currentDay.events.filter((e) => e.type === "ai-generated").length} AI suggested
+          </p>
+        </div>
+
+        {/* Events list */}
+        <div className="flex-1 overflow-y-auto px-4 pb-24 pt-2 space-y-1">
+          {currentDay.events.map((event, i) => (
+            <div key={event.id}>
+              <EventPill
+                event={event}
+                index={i}
+                onClick={() => setSelectedEvent(event)}
+              />
+              {i < currentDay.events.length - 1 && currentDay.travel[i] && (
+                <TravelIndicator segment={currentDay.travel[i]} />
+              )}
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Event Detail Modal */}
+      <AnimatePresence>
+        {selectedEvent && !isNavigating && (
+          <EventDetail
+            event={selectedEvent}
+            travelTo={travelToSelected}
+            onClose={() => setSelectedEvent(null)}
+            onNavigate={handleNavigate}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Navigation View */}
+      <AnimatePresence>
+        {isNavigating && (
+          <NavigationView
+            event={navEvent || currentDay.events[0]}
+            fromEvent={
+              selectedEventIndex > 0
+                ? currentDay.events[selectedEventIndex - 1]
+                : undefined
+            }
+            travel={travelToSelected}
+            onClose={() => {
+              setIsNavigating(false);
+              setSelectedEvent(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* AI Chat */}
+      <AIChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   );
 };
