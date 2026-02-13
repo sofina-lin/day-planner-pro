@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
-import { mockItineraries, ItineraryEvent } from "@/data/mockEvents";
+import { mockItineraries, ItineraryEvent, DayItinerary } from "@/data/mockEvents";
 import MapView from "@/components/MapView";
 import DateSelector from "@/components/DateSelector";
 import EventPill from "@/components/EventPill";
@@ -9,17 +9,21 @@ import TravelIndicator from "@/components/TravelIndicator";
 import EventDetail from "@/components/EventDetail";
 import NavigationView from "@/components/NavigationView";
 import AIChatPanel from "@/components/AIChatPanel";
+import LocationSearch from "@/components/LocationSearch";
+import { toast } from "sonner";
 
 const Index = () => {
+  const [itineraries, setItineraries] = useState<DayItinerary[]>(mockItineraries);
   const [selectedDate, setSelectedDate] = useState(mockItineraries[0].date);
   const [selectedEvent, setSelectedEvent] = useState<ItineraryEvent | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [sheetExpanded, setSheetExpanded] = useState(false);
+  const [completedEvents, setCompletedEvents] = useState<Set<string>>(new Set());
 
   const currentDay = useMemo(
-    () => mockItineraries.find((d) => d.date === selectedDate) || mockItineraries[0],
-    [selectedDate]
+    () => itineraries.find((d) => d.date === selectedDate) || itineraries[0],
+    [selectedDate, itineraries]
   );
 
   const selectedEventIndex = selectedEvent
@@ -33,9 +37,59 @@ const Index = () => {
 
   const navEvent = useMemo(() => selectedEvent, [isNavigating]);
 
-  const handleNavigate = () => {
-    setIsNavigating(true);
-  };
+  const handleNavigate = () => setIsNavigating(true);
+
+  const handleToggleComplete = useCallback((id: string) => {
+    setCompletedEvents((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleUpdateEvent = useCallback((updated: ItineraryEvent) => {
+    setItineraries((prev) =>
+      prev.map((day) => ({
+        ...day,
+        events: day.events.map((e) => (e.id === updated.id ? updated : e)),
+      }))
+    );
+    setSelectedEvent(updated);
+    toast.success("Event updated");
+  }, []);
+
+  const handleAddLocation = useCallback(
+    (result: { name: string; address: string; lat: number; lng: number }) => {
+      const newEvent: ItineraryEvent = {
+        id: `search-${Date.now()}`,
+        number: currentDay.events.length + 1,
+        title: result.name,
+        startTime: "TBD",
+        endTime: "TBD",
+        duration: "TBD",
+        location: result.address,
+        lat: result.lat,
+        lng: result.lng,
+        type: "ai-generated",
+        description: `Added from search. Tap edit to set the time.`,
+        category: "personal",
+      };
+      setItineraries((prev) =>
+        prev.map((day) =>
+          day.date === selectedDate
+            ? {
+                ...day,
+                events: [...day.events, newEvent],
+                travel: [...day.travel, { method: "walking" as const, duration: "~10 min" }],
+              }
+            : day
+        )
+      );
+      toast.success(`${result.name} added to itinerary`);
+    },
+    [selectedDate, currentDay]
+  );
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-background">
@@ -47,11 +101,14 @@ const Index = () => {
         />
       </div>
 
+      {/* Location search */}
+      <LocationSearch onAddLocation={handleAddLocation} />
+
       {/* AI Chat FAB */}
       <motion.button
         whileTap={{ scale: 0.9 }}
-        onClick={() => setIsChatOpen(true)}
-        className="absolute top-12 right-4 z-20 w-12 h-12 rounded-2xl nav-gradient flex items-center justify-center shadow-lg"
+        onClick={() => setIsChatOpen(!isChatOpen)}
+        className={`absolute top-12 right-4 z-20 w-12 h-12 rounded-2xl nav-gradient flex items-center justify-center shadow-lg ${isChatOpen ? "ring-2 ring-accent/50" : ""}`}
       >
         <Sparkles className="w-5 h-5 text-accent-foreground" />
       </motion.button>
@@ -72,7 +129,8 @@ const Index = () => {
         style={{ height: "95%" }}
       >
         {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing"
+        <div
+          className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing"
           onClick={() => setSheetExpanded(!sheetExpanded)}
         >
           <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
@@ -89,7 +147,7 @@ const Index = () => {
             {currentDay.label === "Today" ? "Today's" : currentDay.label + "'s"} Itinerary
           </h2>
           <p className="text-xs text-muted-foreground">
-            {currentDay.events.length} events · {currentDay.events.filter((e) => e.type === "ai-generated").length} AI suggested
+            {currentDay.events.length} events · {completedEvents.size} completed
           </p>
         </div>
 
@@ -101,6 +159,8 @@ const Index = () => {
                 event={event}
                 index={i}
                 onClick={() => setSelectedEvent(event)}
+                isCompleted={completedEvents.has(event.id)}
+                onToggleComplete={handleToggleComplete}
               />
               {i < currentDay.events.length - 1 && currentDay.travel[i] && (
                 <TravelIndicator segment={currentDay.travel[i]} />
@@ -118,6 +178,7 @@ const Index = () => {
             travelTo={travelToSelected}
             onClose={() => setSelectedEvent(null)}
             onNavigate={handleNavigate}
+            onUpdateEvent={handleUpdateEvent}
           />
         )}
       </AnimatePresence>
@@ -141,7 +202,7 @@ const Index = () => {
         )}
       </AnimatePresence>
 
-      {/* AI Chat */}
+      {/* AI Chat – Siri-style floating overlay */}
       <AIChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   );
