@@ -21,7 +21,7 @@ const Index = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [sheetExpanded, setSheetExpanded] = useState(false);
-  const [completedEvents, setCompletedEvents] = useState<Set<string>>(new Set());
+  
 
   const currentDay = useMemo(
     () => itineraries.find((d) => d.date === selectedDate) || itineraries[0],
@@ -41,14 +41,6 @@ const Index = () => {
 
   const handleNavigate = () => setIsNavigating(true);
 
-  const handleToggleComplete = useCallback((id: string) => {
-    setCompletedEvents((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
 
   const handleUpdateEvent = useCallback((updated: ItineraryEvent) => {
     setItineraries((prev) =>
@@ -158,7 +150,7 @@ const Index = () => {
             {currentDay.label === "Today" ? "Today's" : currentDay.label + "'s"} Itinerary
           </h2>
           <p className="text-xs text-muted-foreground">
-            {currentDay.events.length} events · {completedEvents.size} completed
+            {currentDay.events.length} events
           </p>
         </div>
 
@@ -170,8 +162,6 @@ const Index = () => {
                 event={event}
                 index={i}
                 onClick={() => setSelectedEvent(event)}
-                isCompleted={completedEvents.has(event.id)}
-                onToggleComplete={handleToggleComplete}
               />
               {i < currentDay.events.length - 1 && currentDay.travel[i] && (
                 <TravelIndicator segment={currentDay.travel[i]} />

@@ -1,16 +1,14 @@
 import { motion } from "framer-motion";
 import { ItineraryEvent, getCategoryColor, getCategoryIcon } from "@/data/mockEvents";
-import { MapPin, Clock, Sparkles, Check } from "lucide-react";
+import { MapPin, Clock, Sparkles } from "lucide-react";
 
 interface EventPillProps {
   event: ItineraryEvent;
   onClick: () => void;
   index: number;
-  isCompleted: boolean;
-  onToggleComplete: (id: string) => void;
 }
 
-const EventPill = ({ event, onClick, index, isCompleted, onToggleComplete }: EventPillProps) => {
+const EventPill = ({ event, onClick, index }: EventPillProps) => {
   const catColor = getCategoryColor(event.category);
 
   return (
@@ -20,22 +18,7 @@ const EventPill = ({ event, onClick, index, isCompleted, onToggleComplete }: Eve
       transition={{ delay: index * 0.06, duration: 0.35 }}
       className="relative w-full"
     >
-      <div className={`flex gap-3 p-3 rounded-2xl bg-card pill-shadow border border-border/50 transition-all hover:shadow-md ${isCompleted ? "opacity-60" : ""}`}>
-        {/* Checkbox */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleComplete(event.id);
-          }}
-          className={`flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-lg border-2 self-center transition-colors ${
-            isCompleted
-              ? "bg-accent border-accent"
-              : "border-muted-foreground/30 hover:border-accent"
-          }`}
-        >
-          {isCompleted && <Check className="w-3.5 h-3.5 text-accent-foreground" />}
-        </button>
-
+      <div className="flex gap-3 p-3 rounded-2xl bg-card pill-shadow border border-border/50 transition-all hover:shadow-md">
         {/* Number badge */}
         <div
           className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-xl text-sm font-bold"
@@ -46,7 +29,7 @@ const EventPill = ({ event, onClick, index, isCompleted, onToggleComplete }: Eve
 
         <button onClick={onClick} className="flex-1 min-w-0 text-left">
           <div className="flex items-center gap-1.5">
-            <span className={`text-sm font-semibold text-foreground truncate ${isCompleted ? "line-through" : ""}`}>{event.title}</span>
+            <span className="text-sm font-semibold text-foreground truncate">{event.title}</span>
             {event.type === "ai-generated" && (
               <Sparkles className="w-3.5 h-3.5 text-accent flex-shrink-0" />
             )}
