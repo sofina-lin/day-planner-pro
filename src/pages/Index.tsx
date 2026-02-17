@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, User } from "lucide-react";
 import { mockItineraries, ItineraryEvent, DayItinerary } from "@/data/mockEvents";
 import MapView from "@/components/MapView";
 import DateSelector from "@/components/DateSelector";
@@ -10,6 +10,7 @@ import EventDetail from "@/components/EventDetail";
 import NavigationView from "@/components/NavigationView";
 import AIChatPanel from "@/components/AIChatPanel";
 import LocationSearch from "@/components/LocationSearch";
+import AccountMenu from "@/components/AccountMenu";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -18,6 +19,7 @@ const Index = () => {
   const [selectedEvent, setSelectedEvent] = useState<ItineraryEvent | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [completedEvents, setCompletedEvents] = useState<Set<string>>(new Set());
 
@@ -104,14 +106,23 @@ const Index = () => {
       {/* Location search */}
       <LocationSearch onAddLocation={handleAddLocation} />
 
-      {/* AI Chat FAB */}
-      <motion.button
-        whileTap={{ scale: 0.9 }}
-        onClick={() => setIsChatOpen(!isChatOpen)}
-        className={`absolute top-12 right-4 z-20 w-12 h-12 rounded-2xl nav-gradient flex items-center justify-center shadow-lg ${isChatOpen ? "ring-2 ring-accent/50" : ""}`}
-      >
-        <Sparkles className="w-5 h-5 text-accent-foreground" />
-      </motion.button>
+      {/* Top-right buttons */}
+      <div className="absolute top-12 right-4 z-20 flex items-center gap-2">
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setIsAccountOpen(true)}
+          className="w-12 h-12 rounded-2xl bg-card shadow-lg flex items-center justify-center border border-border/50"
+        >
+          <User className="w-5 h-5 text-foreground" />
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setIsChatOpen(!isChatOpen)}
+          className={`w-12 h-12 rounded-2xl nav-gradient flex items-center justify-center shadow-lg ${isChatOpen ? "ring-2 ring-accent/50" : ""}`}
+        >
+          <Sparkles className="w-5 h-5 text-accent-foreground" />
+        </motion.button>
+      </div>
 
       {/* Bottom Sheet */}
       <motion.div
@@ -202,8 +213,11 @@ const Index = () => {
         )}
       </AnimatePresence>
 
-      {/* AI Chat – Siri-style floating overlay */}
+      {/* AI Chat */}
       <AIChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+
+      {/* Account Menu */}
+      <AccountMenu isOpen={isAccountOpen} onClose={() => setIsAccountOpen(false)} />
     </div>
   );
 };
