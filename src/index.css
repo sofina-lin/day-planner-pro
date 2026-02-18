@@ -96,10 +96,6 @@
 }
 
 @layer utilities {
-  .writing-mode-vertical {
-    writing-mode: vertical-rl;
-  }
-
   .pill-shadow {
     box-shadow: var(--pill-shadow);
   }
