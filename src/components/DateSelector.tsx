@@ -48,8 +48,12 @@ const DateSelector = ({ selectedDate, onSelectDate }: DateSelectorProps) => {
     }
   };
 
+  const centerDate = new Date(selectedDate + "T12:00:00");
+  const monthLabel = centerDate.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+
   return (
     <div className="flex items-center gap-2 py-2">
+      <span className="text-xs font-semibold text-muted-foreground min-w-[52px] text-center leading-tight">{monthLabel}</span>
       <div className="flex gap-1.5 flex-1 overflow-x-auto scrollbar-hide px-1">
         {weekDays.map((day) => {
           const isActive = day.date === selectedDate;
