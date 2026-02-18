@@ -147,7 +147,7 @@ const Index = () => {
         {/* Title */}
         <div className="px-5 pt-2 pb-1">
           <h2 className="text-lg font-bold text-foreground">
-            {currentDay.label === "Today" ? "Today's" : currentDay.label + "'s"} Itinerary
+            Itinerary
           </h2>
           <p className="text-xs text-muted-foreground">
             {currentDay.events.length} events

@@ -49,11 +49,10 @@ const DateSelector = ({ selectedDate, onSelectDate }: DateSelectorProps) => {
   };
 
   const centerDate = new Date(selectedDate + "T12:00:00");
-  const monthLabel = centerDate.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  const monthLabel = centerDate.toLocaleDateString("en-US", { month: "short" });
 
   return (
     <div className="flex items-center gap-2 py-2">
-      <span className="text-xs font-semibold text-muted-foreground min-w-[52px] text-center leading-tight">{monthLabel}</span>
       <div className="flex gap-1.5 flex-1 overflow-x-auto scrollbar-hide px-1">
         {weekDays.map((day) => {
           const isActive = day.date === selectedDate;
@@ -88,9 +87,10 @@ const DateSelector = ({ selectedDate, onSelectDate }: DateSelectorProps) => {
         <PopoverTrigger asChild>
           <motion.button
             whileTap={{ scale: 0.9 }}
-            className="flex-shrink-0 w-9 h-9 rounded-xl bg-secondary flex items-center justify-center border border-border/50"
+            className="flex-shrink-0 px-2.5 h-9 rounded-xl bg-secondary flex items-center gap-1.5 border border-border/50"
           >
-            <CalendarIcon className="w-4 h-4 text-foreground" />
+            <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-[11px] font-semibold text-muted-foreground">{monthLabel}</span>
           </motion.button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="end" side="top">
