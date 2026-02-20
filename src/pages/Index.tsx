@@ -13,15 +13,22 @@ import LocationSearch from "@/components/LocationSearch";
 import AccountMenu from "@/components/AccountMenu";
 import { toast } from "sonner";
 
+interface NavigationDestination {
+  name: string;
+  lat: number;
+  lng: number;
+  address?: string;
+}
+
 const Index = () => {
   const [itineraries, setItineraries] = useState<DayItinerary[]>(mockItineraries);
   const [selectedDate, setSelectedDate] = useState(mockItineraries[0].date);
   const [selectedEvent, setSelectedEvent] = useState<ItineraryEvent | null>(null);
-  const [isNavigating, setIsNavigating] = useState(false);
+  const [navDestination, setNavDestination] = useState<NavigationDestination | null>(null);
+  const [navFromEvent, setNavFromEvent] = useState<ItineraryEvent | undefined>(undefined);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [sheetExpanded, setSheetExpanded] = useState(false);
-  
 
   const currentDay = useMemo(
     () => itineraries.find((d) => d.date === selectedDate) || itineraries[0],
@@ -37,10 +44,38 @@ const Index = () => {
       ? currentDay.travel[selectedEventIndex - 1]
       : undefined;
 
-  const navEvent = useMemo(() => selectedEvent, [isNavigating]);
+  // Navigate from event detail
+  const handleNavigateFromEvent = useCallback(() => {
+    if (!selectedEvent) return;
+    const idx = currentDay.events.findIndex((e) => e.id === selectedEvent.id);
+    const from = idx > 0 ? currentDay.events[idx - 1] : undefined;
+    setNavFromEvent(from);
+    setNavDestination({
+      name: selectedEvent.title,
+      lat: selectedEvent.lat,
+      lng: selectedEvent.lng,
+      address: selectedEvent.location,
+    });
+    setSelectedEvent(null);
+  }, [selectedEvent, currentDay]);
 
-  const handleNavigate = () => setIsNavigating(true);
+  // Navigate from search
+  const handleNavigateFromSearch = useCallback(
+    (dest: { name: string; address: string; lat: number; lng: number }) => {
+      // Use user's "current" location as the last event or fallback
+      const lastEvent = currentDay.events.length > 0
+        ? currentDay.events[currentDay.events.length - 1]
+        : undefined;
+      setNavFromEvent(lastEvent);
+      setNavDestination({ name: dest.name, lat: dest.lat, lng: dest.lng, address: dest.address });
+    },
+    [currentDay]
+  );
 
+  const handleCloseNavigation = useCallback(() => {
+    setNavDestination(null);
+    setNavFromEvent(undefined);
+  }, []);
 
   const handleUpdateEvent = useCallback((updated: ItineraryEvent) => {
     setItineraries((prev) =>
@@ -53,38 +88,6 @@ const Index = () => {
     toast.success("Event updated");
   }, []);
 
-  const handleAddLocation = useCallback(
-    (result: { name: string; address: string; lat: number; lng: number }) => {
-      const newEvent: ItineraryEvent = {
-        id: `search-${Date.now()}`,
-        number: currentDay.events.length + 1,
-        title: result.name,
-        startTime: "TBD",
-        endTime: "TBD",
-        duration: "TBD",
-        location: result.address,
-        lat: result.lat,
-        lng: result.lng,
-        type: "ai-generated",
-        description: `Added from search. Tap edit to set the time.`,
-        category: "personal",
-      };
-      setItineraries((prev) =>
-        prev.map((day) =>
-          day.date === selectedDate
-            ? {
-                ...day,
-                events: [...day.events, newEvent],
-                travel: [...day.travel, { method: "walking" as const, duration: "~10 min" }],
-              }
-            : day
-        )
-      );
-      toast.success(`${result.name} added to itinerary`);
-    },
-    [selectedDate, currentDay]
-  );
-
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-background">
       {/* Map layer */}
@@ -96,7 +99,7 @@ const Index = () => {
       </div>
 
       {/* Location search */}
-      <LocationSearch onAddLocation={handleAddLocation} />
+      <LocationSearch onNavigateTo={handleNavigateFromSearch} />
 
       {/* Top-right buttons */}
       <div className="absolute top-12 right-4 z-20 flex items-center gap-2">
@@ -146,12 +149,8 @@ const Index = () => {
 
         {/* Title */}
         <div className="px-5 pt-2 pb-1">
-          <h2 className="text-lg font-bold text-foreground">
-            Itinerary
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            {currentDay.events.length} events
-          </p>
+          <h2 className="text-lg font-bold text-foreground">Itinerary</h2>
+          <p className="text-xs text-muted-foreground">{currentDay.events.length} events</p>
         </div>
 
         {/* Events list */}
@@ -173,12 +172,12 @@ const Index = () => {
 
       {/* Event Detail Modal */}
       <AnimatePresence>
-        {selectedEvent && !isNavigating && (
+        {selectedEvent && !navDestination && (
           <EventDetail
             event={selectedEvent}
             travelTo={travelToSelected}
             onClose={() => setSelectedEvent(null)}
-            onNavigate={handleNavigate}
+            onNavigate={handleNavigateFromEvent}
             onUpdateEvent={handleUpdateEvent}
           />
         )}
@@ -186,19 +185,12 @@ const Index = () => {
 
       {/* Navigation View */}
       <AnimatePresence>
-        {isNavigating && (
+        {navDestination && (
           <NavigationView
-            event={navEvent || currentDay.events[0]}
-            fromEvent={
-              selectedEventIndex > 0
-                ? currentDay.events[selectedEventIndex - 1]
-                : undefined
-            }
+            destination={navDestination}
+            fromEvent={navFromEvent}
             travel={travelToSelected}
-            onClose={() => {
-              setIsNavigating(false);
-              setSelectedEvent(null);
-            }}
+            onClose={handleCloseNavigation}
           />
         )}
       </AnimatePresence>
