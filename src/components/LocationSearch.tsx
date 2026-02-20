@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, MapPin, Plus } from "lucide-react";
+import { Search, X, MapPin, Navigation } from "lucide-react";
 
 interface SearchResult {
   id: string;
@@ -23,10 +23,10 @@ const mockResults: SearchResult[] = [
 ];
 
 interface LocationSearchProps {
-  onAddLocation: (result: { name: string; address: string; lat: number; lng: number }) => void;
+  onNavigateTo: (destination: { name: string; address: string; lat: number; lng: number }) => void;
 }
 
-const LocationSearch = ({ onAddLocation }: LocationSearchProps) => {
+const LocationSearch = ({ onNavigateTo }: LocationSearchProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -43,8 +43,8 @@ const LocationSearch = ({ onAddLocation }: LocationSearchProps) => {
     if (isOpen) inputRef.current?.focus();
   }, [isOpen]);
 
-  const handleAdd = (result: SearchResult) => {
-    onAddLocation({ name: result.name, address: result.address, lat: result.lat, lng: result.lng });
+  const handleSelect = (result: SearchResult) => {
+    onNavigateTo({ name: result.name, address: result.address, lat: result.lat, lng: result.lng });
     setQuery("");
     setIsOpen(false);
   };
@@ -79,7 +79,7 @@ const LocationSearch = ({ onAddLocation }: LocationSearchProps) => {
                   ref={inputRef}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search for a place to add..."
+                  placeholder="Search places..."
                   className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
                 />
                 <button onClick={() => { setIsOpen(false); setQuery(""); }} className="p-1 rounded-full hover:bg-muted">
@@ -92,7 +92,7 @@ const LocationSearch = ({ onAddLocation }: LocationSearchProps) => {
                   {filtered.map((result) => (
                     <button
                       key={result.id}
-                      onClick={() => handleAdd(result)}
+                      onClick={() => handleSelect(result)}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left"
                     >
                       <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0">
@@ -102,9 +102,9 @@ const LocationSearch = ({ onAddLocation }: LocationSearchProps) => {
                         <p className="text-sm font-medium text-foreground truncate">{result.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{result.address}</p>
                       </div>
-                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-accent/10 text-accent text-xs font-medium flex-shrink-0">
-                        <Plus className="w-3 h-3" />
-                        Add
+                      <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold flex-shrink-0">
+                        <Navigation className="w-3 h-3" />
+                        Go
                       </div>
                     </button>
                   ))}
